@@ -23,25 +23,26 @@ from .interp_fix import interp1d
 from collections import namedtuple
 
 LOG = logging.getLogger(__name__)
-            
+
+
 class KaSKA(object):
     """The main KaSKA object"""
 
     def __init__(self, observations, time_grid, state_mask, approx_inverter,
-                output_folder, chunk = None):
+                output_folder, chunk = None, save_sgl_inversion=True):
         self.time_grid = time_grid
         self.observations = observations
         self.state_mask = state_mask
         self.output_folder = output_folder
         self.inverter = NNParameterInversion(approx_inverter)
         self.chunk = chunk
-        self.save_sgl_inversion = True
+        self.save_sgl_inversion = save_sgl_inversion
 
     def first_pass_inversion(self):
         """A first pass inversion. Could be anything, from a quick'n'dirty
         LUT, a regressor. As coded, we use the `self.inverter` method, which
         in this case, will call the ANN inversion."""
-        state_mask = self.observations.state_mask.ReadAsArray()
+        state_mask = self.state_mask.ReadAsArray()
         state_mask = state_mask.astype(np.bool)
         LOG.info("Doing first pass inversion!")
         S = {}
@@ -55,15 +56,15 @@ class KaSKA(object):
     def _process_first_pass(self, first_passer_dict):
         """This methods takes the first pass estimates of surface parameters
         (stored as a dictionary) and assembles them into an
-        `(n_params, n_times, nx, ny)` grid. The assumption here is the 
+        `(n_params, n_times, nx, ny)` grid. The assumption here is the
         dictionary is indexed by dates (e.g. datetime objects) and that for
         each date, we have a list of parameters.
-        
+
         Parameters
         ----------
         first_passer_dict: dict
             A dictionary with first pass guesses in an irregular temporal grid
-        
+
         """
         dates = [k for k in first_passer_dict.keys()]
         n_params, nx, ny = first_passer_dict[dates[0]].shape
@@ -90,7 +91,7 @@ class KaSKA(object):
         return dates, param_grid
 
     def run_retrieval(self):
-        """Runs the retrieval for all time-steps. It proceeds by first 
+        """Runs the retrieval for all time-steps. It proceeds by first
         inverting on a observation by observation fashion, and then performs
         a per pixel smoothing/interpolation."""
         dates, retval = self._process_first_pass(self.first_pass_inversion())
@@ -115,15 +116,15 @@ class KaSKA(object):
         cab = -100*np.log(parameter_block[1, :, :, :])
         cbrown = parameter_block[2, :, :, :]
         if self.save_sgl_inversion:
-            save_output_parameters(dates, self.observations, 
-                self.output_folder/"single_imgs/", ["lai", "cab", "cbrown"],
+            save_output_parameters(dates, self.observations,
+                self.output_folder + "/single_imgs/", ["lai", "cab", "cbrown"],
                            [lai, cab, cbrown], output_format="GTiff",
                            chunk=self.chunk, fname_pattern="s2_sgl",
                            options=['COMPRESS=DEFLATE',
                                     'BIGTIFF=YES',
                                     'PREDICTOR=1',
                                     'TILED=YES'])
-               
+
         # Basically, remove weird values outside of boundaries, nans and stuff
         # Could be done simply with the previously stated data structure, as
         # this is a bit of an adhoc piece of code.
@@ -135,7 +136,7 @@ class KaSKA(object):
         cbrown[cbrown < 0] = np.nan
         # Create a mask where we have no (LAI) data
         mask = np.all(lai == 0, axis=(0))
-        
+
         # Time axes in days of year
         doys = np.array([int(x.strftime('%j')) for x in dates])
         doy_grid = np.array([int(x.strftime('%j')) for x in self.time_grid])
