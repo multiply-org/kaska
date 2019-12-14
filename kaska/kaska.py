@@ -22,6 +22,13 @@ from .utils import save_output_parameters
 from .interp_fix import interp1d
 from collections import namedtuple
 
+component_progress_logger = logging.getLogger('ComponentProgress')
+component_progress_logger.setLevel(logging.INFO)
+component_progress_formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+component_progress_logging_handler = logging.StreamHandler()
+component_progress_logging_handler.setLevel(logging.INFO)
+component_progress_logging_handler.setFormatter(component_progress_formatter)
+component_progress_logger.addHandler(component_progress_logging_handler)
 LOG = logging.getLogger(__name__)
 
 
@@ -95,6 +102,7 @@ class KaSKA(object):
         inverting on a observation by observation fashion, and then performs
         a per pixel smoothing/interpolation."""
         dates, retval = self._process_first_pass(self.first_pass_inversion())
+        component_progress_logger.info('50')
         LOG.info("Burp! Now doing temporal smoothing")
         return self._run_smoother(dates, retval)
         #x0 = np.zeros_like(retval)
@@ -152,8 +160,10 @@ class KaSKA(object):
         slai = smoothn(np.array(laii), W=2*np.array(laii), isrobust=True, s=0.05,
                        TolZ=1e-6, axis=0)[0]
         slai[slai < 0] = 0
+        component_progress_logger.info('66')
         scab = smoothn(np.array(cabi), W=slai, isrobust=True, s=0.5,
                         TolZ=1e-6, axis=0)[0]
+        component_progress_logger.info('84')
         scbrown = smoothn(np.array(cbrowni), W=slai, isrobust=True, s=0.5,
                         TolZ=1e-6, axis=0)[0]
         # Interpolate to state grid
