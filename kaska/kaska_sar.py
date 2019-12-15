@@ -193,7 +193,6 @@ def do_one_pixel_field(sar_inference_data, vv, vh, lai, theta, time, sm, sm_std,
     times  = []
     uorbits = np.unique(orbits)
     for i, orbit in enumerate(uorbits):
-        component_progress_logger.info(f'{int((i/len(uorbits))*100)}')
         orbit_mask = orbits == orbit
         ovv, ovh, olai, otheta, otime = vv[orbit_mask], vh[orbit_mask], lai[orbit_mask], theta[orbit_mask], time[orbit_mask]
         osm, osm_std, osro, osro_std  = sm[orbit_mask], sm_std[orbit_mask], sr[orbit_mask], sr_std[orbit_mask]
@@ -346,6 +345,8 @@ def do_inversion(sar_inference_data, prior, state_mask, segment=False):
 
 
         for i in range(len(xs)):
+            if (i%1000) == 0:
+                component_progress_logger.info(f'{int((i/len(xs))*100)}')
             indx, indy = xs[i], ys[i]
 
             # field_mask = slice(None, None), slice(indx, indx+1), slice(indy, indy+1)
