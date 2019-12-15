@@ -46,15 +46,15 @@ def get_sar(s1_nc_file):
     ang_name = s1_nc_file.replace('.nc', '_ang.tif')
 
     if not os.path.exists(vv_name):
-        gg = gdal.Open('NETCDF:"%s":sigma0_vv_norm_multi_db'%s1_nc_file)
+        gg = gdal.Open('NETCDF:"%s":sigma0_vv_norm_multi'%s1_nc_file)
         geo = gg.GetGeoTransform()
-        sigma0_vv_norm_multi_db = data['sigma0_vv_norm_multi_db'][:]
+        sigma0_vv_norm_multi_db = data['sigma0_vv_norm_multi'][:]
         save_to_tif(vv_name, sigma0_vv_norm_multi_db, geo)
 
     if not os.path.exists(vh_name):
-        gg = gdal.Open('NETCDF:"%s":sigma0_vh_norm_multi_db'%s1_nc_file)
+        gg = gdal.Open('NETCDF:"%s":sigma0_vh_norm_multi'%s1_nc_file)
         geo = gg.GetGeoTransform()
-        sigma0_vh_norm_multi_db = data['sigma0_vh_norm_multi_db'][:]
+        sigma0_vh_norm_multi_db = data['sigma0_vh_norm_multi'][:]
         save_to_tif(vh_name, sigma0_vh_norm_multi_db, geo)
 
     if not os.path.exists(ang_name):
