@@ -4,6 +4,7 @@ import os
 import osr
 import gdal
 import datetime
+import logging
 import numpy as np
 from netCDF4 import Dataset
 from scipy.ndimage import label
@@ -15,6 +16,14 @@ from scipy.ndimage.filters import gaussian_filter1d
 
 from .utils import reproject_data
 from .watercloudmodel import cost_function
+
+component_progress_logger = logging.getLogger('ComponentProgress')
+component_progress_logger.setLevel(logging.INFO)
+component_progress_formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+component_progress_logging_handler = logging.StreamHandler()
+component_progress_logging_handler.setLevel(logging.INFO)
+component_progress_logging_handler.setFormatter(component_progress_formatter)
+component_progress_logger.addHandler(component_progress_logging_handler)
 
 def save_to_tif(fname, Array, GeoT):
     if os.path.exists(fname):
@@ -183,7 +192,8 @@ def do_one_pixel_field(sar_inference_data, vv, vh, lai, theta, time, sm, sm_std,
     ps     = []
     times  = []
     uorbits = np.unique(orbits)
-    for orbit in uorbits:
+    for i, orbit in enumerate(uorbits):
+        component_progress_logger.info(f'{int((i/len(uorbits))*100)}')
         orbit_mask = orbits == orbit
         ovv, ovh, olai, otheta, otime = vv[orbit_mask], vh[orbit_mask], lai[orbit_mask], theta[orbit_mask], time[orbit_mask]
         osm, osm_std, osro, osro_std  = sm[orbit_mask], sm_std[orbit_mask], sr[orbit_mask], sr_std[orbit_mask]
@@ -313,7 +323,10 @@ def do_inversion(sar_inference_data, prior, state_mask, segment=False):
                 Bvh_outputs[i, field_mask]  = ps[i,4]
                 Cvh_outputs[i, field_mask]  = ps[i,5]
     else:
-        mask = gdal.Open(state_mask).ReadAsArray()
+        if type(state_mask) == str:
+            mask = gdal.Open(state_mask).ReadAsArray()
+        else:
+            mask = state_mask.ReadAsArray()
         xs, ys = np.where(mask)
 
         out_shape   = sar_inference_data.lai[sar_inference_data.time_mask].shape
